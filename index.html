@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Uroš Savurdić — ML systems, evaluation and research</title>
+<meta name="description" content="M.Sc. EECS student and former Applied Science Intern at Microsoft. Builds ML systems, evaluation infrastructure and retrieval, with research in LLM safety and interpretability.">
+<meta name="color-scheme" content="light dark">
+<meta property="og:title" content="Uroš Savurdić — ML systems, evaluation and research">
+<meta property="og:type" content="website">
+<style>
+/* ============================== tokens ============================== */
+:root {
+  --bg:#ffffff; --bg-2:#f4f6fc; --tint:#eef1f9; --raise:#ffffff;
+  --ink:#0a0e1a; --mid:#3d455b; --soft:#6a7387;
+  --line:#e2e6f1; --hair:#edf0f8;
+
+  --accent:#4a31e8; --accent-ink:#3a1fd0; --accent-wash:#eeeafe; --ring:#c2b5fb;
+  --accent-2:#ff4a34; --accent-2-ink:#cf2b15; --accent-2-wash:#fff0ec;
+  --on-accent:#ffffff; --ok:#12a150;
+  --brand:linear-gradient(100deg,#3a1fd0 0%,#6d2bd9 46%,#e0401f 100%);
+  --brand-line:linear-gradient(90deg,#4a31e8,#8b3ae0 45%,#ff4a34);
+  --brand-soft:linear-gradient(100deg,rgba(74,49,232,.13),rgba(255,74,52,.07) 58%,transparent);
+
+  /* validated chart tokens - do not re-tune */
+  --series-1:#2a78d6; --series-2:#eb6834; --chart-surface:#fcfcfb;
+  --grid:#e1e0d9; --axis:#c3c2b7; --muted:#898781;
+
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+
+  --shadow:0 1px 2px rgba(10,14,26,.05), 0 10px 30px -16px rgba(10,14,26,.18);
+  --shadow-lg:0 2px 6px rgba(10,14,26,.06), 0 28px 60px -26px rgba(74,49,232,.36);
+  --glow:0 0 0 1px rgba(74,49,232,.16), 0 12px 32px -12px rgba(74,49,232,.48);
+  --paper-dim:none;
+  color-scheme: light;
+}
+
+/* dark: stepped for the dark surface, not inverted. The same values live in
+   both places so OS preference and the toggle cannot drift apart. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#0a0b12; --bg-2:#0e1019; --tint:#171b28; --raise:#12141f;
+    --ink:#f1f3fa; --mid:#a7b0c6; --soft:#7a8399;
+    --line:#242a3b; --hair:#1a1f2d;
+    --paper-dim:brightness(.84) contrast(1.04);
+    --accent:#8b76ff; --accent-ink:#b3a3ff; --accent-wash:#1c1740; --ring:#453a85;
+    --accent-2:#ff7455; --accent-2-ink:#ff9b81; --accent-2-wash:#2b1510;
+    --on-accent:#0b0716; --ok:#34d399;
+    --brand:linear-gradient(100deg,#a795ff 0%,#c07cf0 46%,#ff8b6b 100%);
+    --brand-line:linear-gradient(90deg,#8b76ff,#b06cf0 45%,#ff7455);
+    --brand-soft:linear-gradient(100deg,rgba(139,118,255,.20),rgba(255,116,85,.10) 58%,transparent);
+    --series-1:#3987e5; --series-2:#d95926; --chart-surface:#1a1a19;
+    --grid:#2c2c2a; --axis:#383835; --muted:#898781;
+    --shadow:0 1px 2px rgba(0,0,0,.6), 0 16px 44px -22px rgba(0,0,0,.9);
+    --shadow-lg:0 2px 6px rgba(0,0,0,.6), 0 30px 70px -30px rgba(0,0,0,.95);
+    --glow:0 0 0 1px rgba(139,118,255,.28), 0 14px 38px -14px rgba(139,118,255,.42);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#0a0b12; --bg-2:#0e1019; --tint:#171b28; --raise:#12141f;
+  --ink:#f1f3fa; --mid:#a7b0c6; --soft:#7a8399;
+  --line:#242a3b; --hair:#1a1f2d;
+  --paper-dim:brightness(.84) contrast(1.04);
+  --accent:#8b76ff; --accent-ink:#b3a3ff; --accent-wash:#1c1740; --ring:#453a85;
+  --accent-2:#ff7455; --accent-2-ink:#ff9b81; --accent-2-wash:#2b1510;
+  --on-accent:#0b0716; --ok:#34d399;
+  --brand:linear-gradient(100deg,#a795ff 0%,#c07cf0 46%,#ff8b6b 100%);
+  --brand-line:linear-gradient(90deg,#8b76ff,#b06cf0 45%,#ff7455);
+  --brand-soft:linear-gradient(100deg,rgba(139,118,255,.20),rgba(255,116,85,.10) 58%,transparent);
+  --series-1:#3987e5; --series-2:#d95926; --chart-surface:#1a1a19;
+  --grid:#2c2c2a; --axis:#383835; --muted:#898781;
+  --shadow:0 1px 2px rgba(0,0,0,.6), 0 16px 44px -22px rgba(0,0,0,.9);
+  --shadow-lg:0 2px 6px rgba(0,0,0,.6), 0 30px 70px -30px rgba(0,0,0,.95);
+  --glow:0 0 0 1px rgba(139,118,255,.28), 0 14px 38px -14px rgba(139,118,255,.42);
+  color-scheme: dark;
+}
+
+/* ============================== base ============================== */
+*,*::before,*::after { box-sizing:border-box; }
+html { scroll-behavior:smooth; scroll-padding-top:86px; -webkit-text-size-adjust:100%; }
+body { margin:0; background:var(--bg); color:var(--ink); overflow-x:hidden;
+       font:400 16.5px/1.68 var(--serif); -webkit-font-smoothing:antialiased;
+       text-rendering:optimizeLegibility; }
+::selection { background:var(--accent-wash); color:var(--accent-ink); }
+.wrap { width:min(100% - 44px, 1180px); margin-inline:auto; }
+/* A reading measure INSIDE the wrap, never on the wrap itself: putting it on
+   .wrap re-centred the column and broke the left grid line that every section
+   head sits on. */
+.narrow { max-width:72ch; }
+img,svg { max-width:100%; }
+@media (max-width:620px){ .wrap{ width:calc(100% - 30px); } body{ font-size:16px; } }
+
+/* inline prose links: bold, with an accent underline that thickens on hover */
+.ln-a { color:var(--accent-ink); text-decoration:none; font-weight:600;
+        background-image:linear-gradient(var(--ring),var(--ring));
+        background-size:100% 1px; background-repeat:no-repeat;
+        background-position:0 calc(100% - 1px); padding-bottom:2px;
+        transition:background-size .18s, background-image .18s, color .18s; }
+.ln-a:hover { background-image:linear-gradient(var(--accent),var(--accent));
+              background-size:100% 2px; color:var(--accent); }
+
+/* ============================== nav ============================== */
+nav { position:sticky; top:0; z-index:40; border-bottom:1px solid var(--hair);
+      background:color-mix(in srgb, var(--bg) 80%, transparent);
+      backdrop-filter:blur(14px) saturate(1.7);
+      -webkit-backdrop-filter:blur(14px) saturate(1.7); }
+nav::after { content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px;
+      background:var(--brand-line); opacity:.85;
+      -webkit-mask-image:linear-gradient(90deg,#000 0,#000 52%,transparent 100%);
+      mask-image:linear-gradient(90deg,#000 0,#000 52%,transparent 100%); }
+nav .bar { display:flex; align-items:center; gap:16px; height:62px; }
+nav .me { display:flex; align-items:center; gap:9px; margin-right:auto;
+          font:650 15px/1 var(--sans); letter-spacing:-.018em;
+          white-space:nowrap; color:var(--ink); }
+.sigil { width:20px; height:20px; flex:0 0 auto; display:block; }
+nav ul { display:flex; gap:2px; list-style:none; margin:0; padding:0;
+         overflow-x:auto; scrollbar-width:none; }
+nav ul::-webkit-scrollbar { display:none; }
+nav ul a { display:block; font:560 13.5px/1 var(--sans); color:var(--soft);
+           text-decoration:none; padding:8px 12px; border-radius:8px;
+           white-space:nowrap; transition:.16s; letter-spacing:-.005em; }
+nav ul a:hover { color:var(--ink); background:var(--tint); }
+nav ul a[aria-current="true"] { color:var(--accent-ink); background:var(--accent-wash); }
+.tgl { display:inline-flex; align-items:center; gap:6px; flex:0 0 auto;
+       font:560 13px/1 var(--sans); color:var(--soft); background:var(--raise);
+       cursor:pointer; border:1px solid var(--line); border-radius:8px;
+       padding:8px 11px; transition:.16s; }
+.tgl:hover { color:var(--ink); border-color:var(--ring); box-shadow:var(--glow); }
+.tgl svg { width:14px; height:14px; }
+@media (max-width:880px){ nav .me span{ display:none; } nav ul{ margin-right:auto; } }
+
+/* ============================== hero ============================== */
+.hero { position:relative; padding:88px 0 0; overflow:hidden;
+        border-bottom:1px solid var(--hair); }
+.hero::before { content:""; position:absolute; z-index:0; inset:-280px -6% auto -12%;
+  height:760px; pointer-events:none;
+  background:
+    radial-gradient(40% 50% at 24% 48%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 72%),
+    radial-gradient(34% 44% at 80% 26%, color-mix(in srgb, var(--accent-2) 17%, transparent), transparent 72%); }
+.hero::after { content:""; position:absolute; z-index:0; inset:0; pointer-events:none; opacity:.9;
+  background-image:radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 0);
+  background-size:26px 26px;
+  -webkit-mask-image:linear-gradient(180deg, rgba(0,0,0,.55), transparent 62%);
+  mask-image:linear-gradient(180deg, rgba(0,0,0,.55), transparent 62%); }
+.hero > * { position:relative; z-index:1; }
+
+.hero-grid { display:grid; grid-template-columns:minmax(0,1.32fr) minmax(300px,.88fr);
+             gap:60px; align-items:start; padding-bottom:54px; }
+@media (max-width:920px){ .hero-grid{ grid-template-columns:1fr; gap:34px; padding-bottom:40px; }
+                          .hero{ padding-top:50px; } }
+
+.pill-row { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 22px; }
+.status { display:inline-flex; align-items:center; gap:8px;
+          font:600 12.2px/1 var(--sans); color:var(--ink);
+          background:var(--raise); border:1px solid var(--line);
+          border-radius:999px; padding:8px 14px 8px 11px; box-shadow:var(--shadow); }
+.status i { width:7px; height:7px; border-radius:50%; background:var(--ok);
+            box-shadow:0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent); }
+.status.loc { color:var(--mid); font-weight:500; box-shadow:none;
+              background:var(--tint); border-color:var(--hair); padding-left:14px; }
+
+h1 { font:700 clamp(2.6rem, 6.6vw, 4.5rem)/0.98 var(--sans);
+     letter-spacing:-.045em; margin:0 0 16px; color:var(--ink); }
+@supports ((-webkit-background-clip:text) or (background-clip:text)) {
+  h1 { background:var(--brand); -webkit-background-clip:text; background-clip:text;
+       color:transparent; -webkit-text-fill-color:transparent; }
+}
+.role { font:500 1.08rem/1.5 var(--sans); color:var(--mid); margin:0 0 22px;
+        max-width:46ch; letter-spacing:-.008em; }
+.role b { color:var(--ink); font-weight:650; }
+.bio { font-size:1.1rem; line-height:1.66; color:var(--mid); margin:0 0 15px; max-width:58ch; }
+.bio.last { margin-bottom:28px; }
+.bio strong { color:var(--ink); font-weight:600; }
+
+.linkrow { display:flex; flex-wrap:wrap; gap:10px; }
+.btn { display:inline-flex; align-items:center; gap:7px; font:620 13.5px/1 var(--sans);
+       letter-spacing:-.004em; text-decoration:none; border-radius:10px; padding:12px 16px;
+       border:1px solid var(--line); color:var(--mid); background:var(--raise);
+       box-shadow:var(--shadow); transition:.18s; }
+.btn svg { width:14px; height:14px; flex:0 0 auto; }
+.btn:hover { border-color:var(--ring); color:var(--accent-ink);
+             transform:translateY(-2px); box-shadow:var(--shadow-lg); }
+.btn.pri { background:var(--accent); border-color:transparent; color:var(--on-accent);
+           box-shadow:var(--glow); }
+.btn.pri:hover { color:var(--on-accent); filter:brightness(1.08); box-shadow:var(--shadow-lg); }
+
+/* The address is shown rather than hidden behind the word "Email": a bare
+   mailto: silently does nothing on a machine with no mail client, and the one
+   thing a visitor came here for should be selectable with or without script.
+   The link still opens a composer for anyone who has one; the button copies. */
+.mailbtn { padding:0; gap:0; overflow:hidden; }
+.mailbtn:hover { transform:none; }
+.mailbtn > a { display:inline-flex; align-items:center; gap:7px; color:inherit;
+               text-decoration:none; padding:12px 12px 12px 16px; }
+.mailbtn > a:hover { color:var(--accent-ink); }
+.mailbtn > button { display:inline-flex; align-items:center; justify-content:center;
+                    width:38px; align-self:stretch; padding:0; cursor:pointer;
+                    color:var(--soft); background:transparent; border:0;
+                    border-left:1px solid var(--line); transition:.16s; }
+.mailbtn > button:hover { color:var(--accent-ink); background:var(--tint); }
+.mailbtn > button.ok { color:var(--accent-ink); }
+.mailbtn > button.ok svg, .mailbtn > button.bad svg { display:none; }
+.mailbtn > button.ok::after { content:"¹3"; font:700 15px/1 var(--sans); }
+.mailbtn > button.bad::after { content:"!"; font:700 15px/1 var(--sans); }
+.mailbtn > button:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+@media (max-width:430px){ .mailbtn > a { font-size:12.4px; padding-left:13px; } }
+
+/* ---- stat panel ---- */
+.panel { background:var(--raise); border:1px solid var(--line); border-radius:18px;
+         padding:24px 26px; box-shadow:var(--shadow); }
+.panel h4 { display:flex; align-items:center; gap:9px; font:650 10.5px/1 var(--sans);
+            letter-spacing:.15em; text-transform:uppercase; color:var(--soft); margin:0 0 20px; }
+.panel h4::after { content:""; flex:1; height:1px; background:var(--hair); }
+.panel.figures { position:relative; overflow:hidden; }
+.panel.figures::before { content:""; position:absolute; inset:0 0 auto 0; height:3px;
+                         background:var(--brand-line); }
+.stat { padding:15px 0; border-top:1px solid var(--hair); }
+.stat:first-of-type { border-top:0; padding-top:2px; }
+.stat .n { display:block; margin-bottom:5px; color:var(--accent);
+           font:700 2.15rem/1 var(--sans); letter-spacing:-.045em;
+           font-variant-numeric:tabular-nums; }
+@supports ((-webkit-background-clip:text) or (background-clip:text)) {
+  .stat .n { background:var(--brand); -webkit-background-clip:text; background-clip:text;
+             color:transparent; -webkit-text-fill-color:transparent; width:-moz-fit-content;
+             width:fit-content; }
+}
+.stat .l { display:block; font:400 12.9px/1.5 var(--sans); color:var(--soft); }
+.avail { font:400 12.8px/1.6 var(--sans); color:var(--soft); margin:18px 0 0;
+         padding-top:16px; border-top:1px solid var(--hair); }
+
+/* ---- latest / news ---- */
+.latest { padding:26px 0 36px; border-top:1px solid var(--hair); }
+.latest h2 { display:flex; align-items:center; gap:10px; font:650 10.5px/1 var(--sans);
+             letter-spacing:.15em; text-transform:uppercase; color:var(--soft); margin:0 0 6px; }
+.latest h2::after { content:""; flex:1; height:1px; background:var(--hair); }
+ol.news { list-style:none; margin:0; padding:0; }
+ol.news li { display:grid; grid-template-columns:106px minmax(0,1fr); gap:18px;
+             align-items:baseline; padding:13px 12px 13px 10px; margin-inline:-10px;
+             border-radius:10px; border-bottom:1px solid var(--hair); transition:.16s; }
+ol.news li:last-child { border-bottom:0; }
+ol.news li:hover { background:var(--accent-wash); }
+ol.news time { font:600 11.4px/1.5 var(--mono); color:var(--accent-ink);
+               letter-spacing:.04em; text-transform:uppercase; white-space:nowrap; }
+ol.news p { margin:0; font:400 15px/1.62 var(--sans); color:var(--mid); }
+ol.news p b { color:var(--ink); font-weight:620; }
+@media (max-width:620px){
+  ol.news li { grid-template-columns:1fr; gap:5px; }
+  ol.news p { font-size:14.5px; }
+}
+
+/* ============================== sections ============================== */
+section { padding:86px 0 0; }
+section.band { background:var(--bg-2); border-top:1px solid var(--hair);
+               padding:86px 0; margin-top:86px; }
+section.band + footer { margin-top:0; border-top:1px solid var(--hair); }
+@media (max-width:620px){ section{ padding-top:64px; }
+                          section.band{ padding:64px 0; margin-top:64px; } }
+
+.shead { display:flex; align-items:flex-end; justify-content:space-between;
+         gap:24px; flex-wrap:wrap; margin-bottom:14px; }
+.eb { display:inline-flex; align-items:center; gap:9px; margin-bottom:11px;
+      font:650 10.5px/1 var(--mono); letter-spacing:.17em; text-transform:uppercase;
+      color:var(--soft); }
+.eb::before { content:""; width:22px; height:3px; border-radius:2px; background:var(--brand-line); }
+.eb b { color:var(--accent-ink); font-weight:650; }
+h2 { font:680 clamp(1.55rem, 3vw, 2.05rem)/1.14 var(--sans);
+     letter-spacing:-.032em; margin:0; color:var(--ink); }
+.sdek { font:400 14.5px/1.55 var(--sans); color:var(--soft); margin:0; max-width:46ch; }
+@media (min-width:900px){ .sdek{ text-align:right; } }
+.rule { height:1px; margin:18px 0 30px;
+        background:linear-gradient(90deg, var(--line), var(--line) 62%, transparent); }
+.rule::before { content:""; display:block; width:56px; height:2px; margin-top:-1px;
+                border-radius:2px; background:var(--brand-line); }
+
+/* ============================== work grid ============================== */
+.chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:26px; }
+.chip { font:560 12.8px/1 var(--sans); color:var(--mid); background:var(--raise);
+        border:1px solid var(--line); border-radius:999px; padding:9px 15px;
+        cursor:pointer; transition:.16s; letter-spacing:-.004em; }
+.chip:hover { border-color:var(--ring); color:var(--ink); transform:translateY(-1px); }
+.chip[aria-pressed="true"] { background:var(--accent); border-color:transparent;
+        color:var(--on-accent); box-shadow:var(--glow); }
+
+.grid { display:grid; gap:18px; grid-template-columns:repeat(auto-fit, minmax(318px, 1fr)); }
+.card { position:relative; background:var(--raise); border:1px solid var(--line);
+        border-radius:18px; padding:22px 24px 20px; display:flex; flex-direction:column;
+        box-shadow:var(--shadow); overflow:hidden;
+        transition:transform .2s, box-shadow .2s, border-color .2s; }
+.card::before { content:""; position:absolute; inset:0 0 auto 0; height:3px;
+                background:var(--brand-line); opacity:0; transition:opacity .2s; }
+.card:hover { border-color:var(--ring); transform:translateY(-4px); box-shadow:var(--shadow-lg); }
+.card:hover::before { opacity:1; }
+.card[hidden] { display:none; }
+.card .top { display:flex; gap:15px; align-items:flex-start; margin-bottom:14px; }
+.thumb { flex:0 0 auto; width:88px; height:60px; border-radius:12px; padding:5px;
+         background:var(--tint); border:1px solid var(--hair);
+         display:grid; place-items:center; transition:.2s; }
+.card:hover .thumb { background:var(--accent-wash); border-color:var(--ring); }
+.mark { display:block; width:100%; height:auto; }
+.mark .a { stroke:var(--accent); fill:none; stroke-width:2;
+           stroke-linecap:round; stroke-linejoin:round; }
+.mark .b { stroke:var(--accent-2); fill:none; stroke-width:2;
+           stroke-linecap:round; stroke-linejoin:round; }
+.mark .g { stroke:var(--ring); fill:none; stroke-width:1.5; stroke-linecap:round; }
+.mark .fa { fill:var(--accent); stroke:none; }
+.mark .fb { fill:var(--accent-2); stroke:none; }
+.card h3 { font:660 1.06rem/1.32 var(--sans); margin:0 0 6px; letter-spacing:-.02em; }
+.card h3 a { color:inherit; text-decoration:none; }
+.card h3 a:hover { color:var(--accent-ink); }
+.card .when { display:block; font:600 11.2px/1 var(--mono); color:var(--soft);
+              letter-spacing:.05em; text-transform:uppercase; }
+.card .res { font:400 14.5px/1.6 var(--sans); color:var(--mid); margin:0 0 16px; flex:1; }
+.card .res b { color:var(--ink); font-weight:620; }
+.card .foot { display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+              padding-top:14px; border-top:1px solid var(--hair); }
+.tag { font:500 10.4px/1 var(--mono); color:var(--soft); background:var(--tint);
+       border:1px solid var(--hair); border-radius:6px; padding:5px 8px;
+       letter-spacing:.04em; text-transform:uppercase; }
+.card .go { display:inline-flex; align-items:center; gap:5px; margin-left:auto;
+            font:620 12.5px/1 var(--sans); color:var(--accent-ink);
+            text-decoration:none; white-space:nowrap; }
+.card .go svg { width:12px; height:12px; transition:transform .2s; }
+.card:hover .go svg { transform:translateX(3px); }
+.card .go:hover { text-decoration:underline; }
+
+/* ============================== research ============================== */
+.deep { margin-bottom:58px; }
+.deep:last-child { margin-bottom:0; }
+.deep .head { display:flex; justify-content:space-between; align-items:baseline;
+              gap:18px; flex-wrap:wrap; margin-bottom:9px; }
+.deep h3 { font:680 clamp(1.2rem,2.2vw,1.45rem)/1.26 var(--sans); margin:0; letter-spacing:-.026em; }
+.deep h3 a { color:inherit; text-decoration:none;
+             background-image:linear-gradient(var(--accent),var(--accent));
+             background-size:0 2px; background-repeat:no-repeat; background-position:0 100%;
+             transition:background-size .22s; }
+.deep h3 a:hover { color:var(--accent-ink); background-size:100% 2px; }
+.deep .when { font:600 11.4px/1 var(--mono); color:var(--soft);
+              letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; }
+.meta { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:18px; }
+.meta .pill { font:500 11.4px/1 var(--sans); color:var(--mid); background:var(--tint);
+              border:1px solid var(--hair); border-radius:999px; padding:6px 11px; }
+.finding { position:relative; font:400 1.09rem/1.62 var(--serif); color:var(--ink);
+           margin:0 0 20px; padding:18px 22px; max-width:76ch;
+           background:var(--brand-soft); border-radius:0 12px 12px 0;
+           border-left:3px solid var(--accent); }
+.finding .fk { display:block; font:650 10px/1 var(--sans); letter-spacing:.16em;
+               text-transform:uppercase; color:var(--accent-ink); margin-bottom:10px; }
+/* Volunteering: the roles on the left, the evidence for them on the right.
+   The roles are self-reported and the letter is not, so they belong side by
+   side rather than one buried under the other. */
+.vol-grid { display:grid; gap:40px; align-items:start;
+            grid-template-columns:minmax(0,1fr) minmax(0,324px); }
+.vol-main { min-width:0; }
+.vol-side { display:grid; gap:18px; min-width:0; }
+@media (max-width:1020px){
+  .vol-grid { grid-template-columns:1fr; gap:26px; }
+  .vol-side { max-width:460px; }
+  /* Stacked, the letter is costing scroll rather than filling a gap, so it
+     shrinks to a card - still legibly a letter, a third of the height. */
+  .letter .sheet { max-width:232px; }
+}
+
+/* A signed letter photographs as paper, so it is presented as paper: two
+   sheets, the second just far enough out to say the document has two pages. */
+.letter { display:block; text-decoration:none; color:inherit; }
+.letter .sheet { position:relative; display:block; margin-bottom:14px; }
+.letter img { display:block; width:100%; height:auto; background:#fff;
+              border:1px solid var(--line); border-radius:3px;
+              filter:var(--paper-dim); transition:filter .22s, transform .22s; }
+.letter .back { position:absolute; top:0; left:0; z-index:0; opacity:.92;
+                transform-origin:top left; transform:rotate(1.6deg) translate(9px,7px);
+                box-shadow:0 6px 18px rgba(8,10,20,.18); }
+.letter .front { position:relative; z-index:1;
+                 box-shadow:0 12px 34px -8px rgba(8,10,20,.34); }
+.letter:hover .front { transform:translateY(-3px); }
+.letter:hover img { filter:none; }
+.letter .cap { display:grid; gap:3px; }
+.letter .cap b { font:660 14.6px/1.35 var(--sans); color:var(--ink);
+                 letter-spacing:-.01em; }
+.letter .src { font:500 12.6px/1.45 var(--sans); color:var(--mid); }
+.letter .sig { font:400 11.8px/1.5 var(--sans); color:var(--soft); }
+.letter .go { margin-top:5px; font:600 11.6px/1 var(--sans); color:var(--accent-ink); }
+.letter:hover .go { text-decoration:underline; text-underline-offset:3px; }
+.letter:focus-visible { outline:2px solid var(--accent); outline-offset:6px;
+                        border-radius:6px; }
+
+/* What I train, sitting under the letter in the same evidence column. */
+.topics { margin:0; padding:14px 18px; background:var(--tint);
+          border:1px solid var(--line); border-radius:12px;
+          font:400 13.6px/1.6 var(--sans); color:var(--mid); }
+.topics .tk { display:block; font:700 10.5px/1.5 var(--sans); letter-spacing:.09em;
+              text-transform:uppercase; color:var(--accent-ink); margin-bottom:6px; }
+ul.pts { margin:0; padding-left:20px; max-width:74ch; }
+ul.pts li { margin-bottom:10px; color:var(--mid); }
+ul.pts li::marker { color:var(--accent); }
+ul.pts li:last-child { margin-bottom:0; }
+.glance { display:grid; gap:10px; margin:0 0 20px; padding:18px 20px;
+          background:var(--tint); border:1px solid var(--line); border-radius:12px; }
+.glance > div { display:grid; grid-template-columns:82px 1fr; gap:4px 14px; }
+.glance .gk { font:700 10.5px/1.5 var(--sans); letter-spacing:.09em; text-transform:uppercase;
+              color:var(--accent-ink); padding-top:2px; }
+.glance .gv { font:400 14.4px/1.55 var(--sans); color:var(--mid); }
+.glance > div:last-child .gv { color:var(--soft); }
+@media (max-width:560px){ .glance > div { grid-template-columns:1fr; gap:2px; } }
+.more { margin-top:14px; }
+
+.aside { font:400 13.4px/1.62 var(--sans); color:var(--soft); margin-top:16px;
+         padding-left:14px; border-left:2px solid var(--ring); max-width:74ch; }
+
+/* ============================== spec lists ============================== */
+.cols { display:grid; gap:18px; align-items:start;
+        grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); }
+.spec { display:grid; gap:15px; }
+.spec > div { padding-bottom:15px; border-bottom:1px solid var(--hair); }
+.spec > div:last-child { padding-bottom:0; border-bottom:0; }
+.spec .k { display:block; font:650 10px/1 var(--mono); letter-spacing:.14em;
+           text-transform:uppercase; color:var(--soft); margin-bottom:8px; }
+.spec .v { display:block; font:400 14.4px/1.58 var(--sans); color:var(--mid); }
+.spec .v b { color:var(--ink); font-weight:620; }
+.spec .v .sub { display:block; color:var(--soft); font-size:13px; margin-top:4px; }
+.plain { margin:0; padding-left:18px; }
+.plain li { font:400 14.4px/1.58 var(--sans); color:var(--mid); margin-bottom:11px; }
+.plain li::marker { color:var(--accent); }
+.plain li:last-child { margin-bottom:0; }
+
+/* ============================== experience ============================== */
+.xp { position:relative; padding:0 0 32px 32px; }
+.xp:last-child { padding-bottom:0; }
+.xp::after { content:""; position:absolute; left:5px; top:20px; bottom:0; width:2px;
+             background:var(--hair); }
+.xp:last-child::after { display:none; }
+.xp::before { content:""; position:absolute; left:0; top:5px; width:12px; height:12px;
+              border-radius:50%; background:var(--bg); border:2px solid var(--accent);
+              box-shadow:0 0 0 4px var(--accent-wash); }
+.xp .t { font:660 1.06rem/1.35 var(--sans); margin:0 0 4px; letter-spacing:-.02em; }
+.xp .t em { font-style:normal; color:var(--accent-ink); }
+.xp .w { display:block; font:600 11.4px/1 var(--mono); color:var(--soft);
+         letter-spacing:.06em; text-transform:uppercase; margin-bottom:12px; }
+.xp .meta { margin-bottom:13px; }
+
+/* ============================== footer ============================== */
+footer { margin-top:86px; padding:66px 0 96px; background:var(--bg-2);
+         border-top:1px solid var(--hair); }
+.cta { font:680 clamp(1.5rem,3.4vw,2.15rem)/1.16 var(--sans); letter-spacing:-.032em;
+       margin:0 0 14px; color:var(--ink); max-width:22ch; }
+@supports ((-webkit-background-clip:text) or (background-clip:text)) {
+  .cta { background:var(--brand); -webkit-background-clip:text; background-clip:text;
+         color:transparent; -webkit-text-fill-color:transparent;
+         width:-moz-fit-content; width:fit-content; }
+}
+footer p { font:400 14.6px/1.7 var(--sans); color:var(--soft); margin:0 0 24px; max-width:62ch; }
+.flinks { display:flex; flex-wrap:wrap; gap:10px; }
+footer .sig { margin:36px 0 0; padding-top:20px; border-top:1px solid var(--hair);
+              font:400 12.6px/1.6 var(--sans); color:var(--soft); }
+footer .sig a { color:var(--accent-ink); text-decoration:none; }
+footer .sig a:hover { text-decoration:underline; }
+
+/* ============================== a11y / motion / print ============================== */
+:where(a,button,summary,[tabindex]):focus-visible {
+  outline:2px solid var(--accent); outline-offset:3px; border-radius:6px; }
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after { transition:none!important; animation:none!important;
+                         scroll-behavior:auto!important; }
+  .card:hover,.btn:hover,.chip:hover { transform:none!important; }
+  .card:hover .go svg { transform:none!important; }
+}
+@media print {
+  nav, .chips, .linkrow, .tgl, .thumb, .pill-row, .flinks,
+  .hero::before, .hero::after, .card::before, .panel.figures::before { display:none!important; }
+  /* Has to out-specify BOTH dark blocks, or a reader whose OS is in dark mode
+     prints a black page with invisible bold text. :root alone (0,1,0) loses to
+     :root:not([data-theme="light"]) (0,2,0); matching that selector here and
+     winning on order is what makes print reliably paper-colored. */
+  :root, :root[data-theme], :root:not([data-theme="light"]) {
+          --bg:#fff; --bg-2:#fff; --raise:#fff; --tint:#fff; --ink:#000; --mid:#1f1f1f;
+          --soft:#555; --line:#c9c9c9; --hair:#e2e2e2; --accent:#000; --accent-ink:#000;
+          --accent-2:#000; --accent-wash:#fff; --ring:#9a9a9a;
+          --brand-soft:none; --brand-line:#000;
+          --shadow:none; --shadow-lg:none; --glow:none; color-scheme:light; }
+  body { font-size:10pt; background:#fff; }
+  h1, .stat .n, .cta { background:none!important; color:#000!important;
+                       -webkit-text-fill-color:#000!important; }
+  .finding { background:none; border:1px solid #c9c9c9; }
+  .card, .panel, .viz, .deep { box-shadow:none; break-inside:avoid; }
+  section, section.band { padding:16pt 0 0; margin-top:0; background:#fff; }
+  footer { background:#fff; margin-top:16pt; padding:16pt 0 0; }
+  ol.news li:hover { background:none; }
+}
+
+
+/* ---- figures: palette slots 1-2, validated against both surfaces ---- */
+.viz { margin:28px 0 0; padding:22px 24px 18px; background:var(--chart-surface);
+       border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); }
+/* Figures earn more width than the reading column. The breakout is sized from
+   the gutter that actually exists rather than from a breakpoint: a fixed -72px
+   overflowed the viewport around 1024px, where the wrap is already near its max.
+   clamp() collapses it to 0 when there is no room. */
+@media (min-width:900px){ .viz { padding:24px 26px 18px;
+  margin-inline: calc(-1 * clamp(0px, (100vw - 100% - 56px) / 2, 72px)); } }
+.viz .cap { font:400 0.95rem/1.58 var(--sans); color:var(--mid); margin:0 0 16px;
+             max-width:88ch; }
+.viz .cap b { color:var(--ink); font-weight:600; }
+.viz .note { font:400 12.5px/1.55 var(--sans); color:var(--soft); margin:12px 0 0; }
+.fig { width:100%; height:auto; display:block; overflow:visible; }
+
+.lg { display:flex; flex-wrap:wrap; gap:16px; margin-bottom:12px; }
+.lg-i { display:inline-flex; align-items:center; gap:7px;
+        font:500 12.5px/1 var(--sans); color:var(--mid); }
+.sw { width:11px; height:11px; border-radius:50%; display:inline-block; }
+
+.s1 { color:var(--series-1); }
+.s2 { color:var(--series-2); }
+.sw.s1 { background:var(--series-1); }
+.sw.s2 { background:var(--series-2); }
+
+.grid { stroke:var(--grid); stroke-width:1; }
+.ref  { stroke:var(--axis); stroke-width:1.25; }
+.stem { stroke:var(--grid); stroke-width:1; }
+.dot  { fill:currentColor; }
+.bar  { fill:currentColor; }
+.dot.ring { stroke:var(--chart-surface); stroke-width:2; }
+.ln   { fill:none; stroke:currentColor; stroke-width:2;
+        stroke-linejoin:round; stroke-linecap:round; }
+.whisk { stroke:currentColor; stroke-width:2; opacity:.55; }
+.cap-t { stroke:currentColor; stroke-width:2; opacity:.55; }
+
+/* text wears ink tokens, never the series color */
+.tick, .axname, .rowlab, .val, .reflab { font-family:var(--sans); fill:var(--muted); }
+.tick   { font-size:11.5px; font-variant-numeric:tabular-nums; }
+.axname { font-size:11.5px; }
+.reflab { font-size:11.5px; }
+.reflab.lead { text-anchor:start; }
+.rowlab { font-size:12.5px; fill:var(--mid); text-anchor:end; }
+.val    { font-size:12px; font-variant-numeric:tabular-nums; fill:var(--mid); font-weight:500; }
+.val.em { fill:var(--ink); font-weight:650; }
+
+/* Prose left, figures right. Below the breakpoint it stacks, prose first. */
+.deep-grid { display:grid; gap:26px; align-items:start;
+             grid-template-columns:minmax(0,1.02fr) minmax(0,1fr); }
+.deep-prose { min-width:0; }
+.deep-prose ul.pts { max-width:58ch; }
+.figcol { display:grid; gap:16px; min-width:0; }
+.figcol .viz { margin-inline:0; }
+@media (max-width:1150px){ .deep-grid { grid-template-columns:1fr; gap:18px; } }
+
+/* Two figures from one project read better side by side when the screen allows.
+   The row takes the breakout; the figures inside it do not, or they would each
+   try to escape the column and overlap. */
+.figrow { display:grid; gap:16px; grid-template-columns:repeat(auto-fit, minmax(430px, 1fr));
+          margin-inline: calc(-1 * clamp(0px, (100vw - 100% - 56px) / 2, 88px)); }
+.figrow .viz { margin-inline:0; }
+@media (max-width:900px){ .figrow { margin-inline:0; grid-template-columns:1fr; } }
+
+.tbl { margin-top:14px; }
+.tbl summary { display:inline-block; font:560 12px/1 var(--sans); color:var(--soft);
+               cursor:pointer; padding:7px 12px; border:1px solid var(--line);
+               border-radius:999px; transition:.16s; }
+.tbl summary:hover { color:var(--accent); border-color:var(--ring); }
+.tbl summary::marker { color:var(--soft); }
+.tbl table { width:100%; border-collapse:collapse; margin-top:9px;
+             font:400 12.5px/1.5 var(--sans); }
+.tbl th { text-align:left; color:var(--soft); font-weight:600; padding:5px 10px 5px 0;
+          border-bottom:1px solid var(--line); }
+.tbl td { color:var(--mid); padding:5px 10px 5px 0; border-bottom:1px solid var(--hair);
+          font-variant-numeric:tabular-nums; }
+@media (max-width:640px){ .viz{padding:14px 12px 12px;} .rowlab{font-size:11px;} }
+</style>
+</head>
+<body>
+<nav><div class="wrap bar"><span class="me"><svg class="sigil" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="sg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" style="stop-color:var(--accent)"/><stop offset="1" style="stop-color:var(--accent-2)"/></linearGradient></defs><rect x="1" y="1" width="22" height="22" rx="7" fill="url(#sg)"/><circle cx="7.6" cy="16.4" r="1.9" style="fill:var(--bg)"/><circle cx="12" cy="12" r="1.9" style="fill:var(--bg)"/><circle cx="16.4" cy="7.6" r="1.9" style="fill:var(--bg)"/></svg><span>Uroš Savurdić</span></span><ul><li><a href="#experience">Experience</a></li><li><a href="#work">Projects</a></li><li><a href="#research">Research</a></li><li><a href="#background">Background</a></li><li><a href="#contact">Contact</a></li></ul><button class="tgl" id="tgl" type="button">Theme</button></div></nav><header class="hero"><div class="wrap"><div class="hero-grid"><div><div class="pill-row"><span class="status loc">Based in Belgrade · Serbian and Croatian/EU citizen</span></div><h1>Uroš Savurdić</h1><p class="role">M.Sc. EECS, University of Belgrade &middot; previously <b>Applied Science Intern at Microsoft</b></p><p class="bio">I work on <strong>machine learning systems from both ends</strong> &mdash; building them, and finding out what they actually do. Retrieval pipelines, <a class="ln-a" href="#work">evaluation harnesses and containerized services</a> on one side; <a class="ln-a" href="#research">controlled experiments, causal interventions and preregistered analysis</a> on the other.</p><p class="bio last">The through-line is measurement: whether a change actually did anything, and how you would know. That question is the same whether the answer ships or gets written up, which is why the work runs across both — <a class="ln-a" href="#experience">LLM evaluation at Microsoft</a>, <a class="ln-a" href="#research">a controlled study of what preference optimization does to a model&rsquo;s safety representation</a>, and <a class="ln-a" href="#research">performance measurement across CPU, GPU and TPU</a>.</p><div class="linkrow"><a class="btn pri" href="Uros_Savurdic_Resume.pdf"><svg viewBox="0 0 24 24" class="" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 19.5h16"/></svg>Download CV</a><a class="btn" href="https://github.com/urosavurdic"><svg viewBox="0 0 24 24" class="" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="m9 5.5-6 6.5 6 6.5M15 5.5l6 6.5-6 6.5"/></svg>GitHub</a><a class="btn" href="https://www.linkedin.com/in/urosavurdic"><svg viewBox="0 0 24 24" class="" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M20 21v-1.8A4.2 4.2 0 0 0 15.8 15H8.2A4.2 4.2 0 0 0 4 19.2V21"/><circle cx="12" cy="7.2" r="3.9"/></svg>LinkedIn</a><span class="btn mailbtn"><a href="mailto:savurdic.uros@gmail.com"><svg viewBox="0 0 24 24" class="" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><rect x="3" y="5" width="18" height="14" rx="2.6"/><path d="m3.7 7.2 8.3 5.9 8.3-5.9"/></svg>savurdic.uros@gmail.com</a><button type="button" data-copy="savurdic.uros@gmail.com" aria-label="Copy email address"><svg viewBox="0 0 24 24" class="" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><rect x="9" y="9" width="11" height="11" rx="2.4"/><path d="M5 15V6.4A2.4 2.4 0 0 1 7.4 4H15"/></svg></button></span></div></div><aside class="panel figures"><h4>Selected results</h4><div class="stat"><span class="n">92&times;</span><span class="l">throughput gap in one PyTorch call, traced to silent kernel dispatch</span></div><div class="stat"><span class="n">81.2%</span><span class="l">agreement with human labels on evaluation at Microsoft, against a 64.6% baseline</span></div><div class="stat"><span class="n">+16%</span><span class="l">retrieval gain on code search, MRR@10 from 0.786 to 0.911</span></div><p class="avail">Authorized to work in Serbia and across the EU/EEA and Switzerland without sponsorship.<br><br></p></aside></div><div class="latest"><h2>Latest</h2><ol class="news"><li><time>Aug – Sep 2026</time><p>Finished <a class="ln-a" href="https://github.com/urosavurdic/dpo-safety-representations">Internal Representations of Safety Across Post-Training</a> &mdash; nine checkpoints, a frozen 654-prompt benchmark, preregistered analysis.</p></li><li><time>Jul 2026</time><p>Finished the <b>Applied Science internship at Microsoft</b> &mdash; LLM evaluation, knowledge graphs and multi-hop reasoning.</p></li><li><time>May 2026</time><p>Gave a talk on <a class="ln-a" href="#research">attention across computational paradigms</a> at <b>SICAAI</b>, the 5th Serbian International Conference on Applied Artificial Intelligence, in Kragujevac.</p></li><li><time>Feb 2026</time><p>Started as <b>Research Collaborator at IPSI Belgrade</b>, with Prof.&nbsp;Veljko Milutinovi&#263;.</p></li></ol></div></div></header><section id="experience"><div class="wrap wide"><div class="shead"><div><span class="eb">Experience</span><h2>Experience</h2></div><p class="sdek">Applied science at Microsoft, and an ongoing research collaboration at IPSI Belgrade.</p></div><div class="rule"></div><div class="tl"><div class="xp"><p class="t">Microsoft &mdash; <em>Applied Science Intern</em></p><span class="w">Mar 2026 &ndash; Jul 2026</span><div class="meta"><span class="pill">LLMs</span><span class="pill">evaluation</span><span class="pill">knowledge graphs</span><span class="pill">multi-hop reasoning</span></div><p class="finding"><span class="fk">Result</span>A consensus of graph-based and surface-level features agreed with human complexity labels 81.2% of the time, against 64.6% for a standard hop-count baseline.</p><div class="deep-grid"><div class="deep-prose"><ul class="pts"><li>Built a multi-view evaluation framework combining graph-based and surface-level features; its consensus score reached 81.2% agreement with human-annotated complexity labels, against 64.6% for a standard hop-count baseline — a 16.6-point gain.</li><li>Developed an end-to-end pipeline generating evidence-grounded, controllable multi-hop QA datasets from enterprise documents using knowledge graphs and LLMs.</li><li>Ran ablations across extraction, retrieval, canonicalization and graph-construction strategies to find what actually drives QA generation quality.</li></ul></div><div class="figcol"><figure class="viz"><figcaption class="cap"><b>A consensus of graph and surface features tracks human judgement far better than hop count.</b> Multi-hop question difficulty, scored against human-annotated complexity labels.</figcaption><svg viewBox="0 0 760 144" class="fig" role="img" aria-label="Agreement with human complexity labels, consensus scorer versus hop-count baseline"><line class="grid" x1="196.0" y1="10" x2="196.0" y2="102"/><text class="tick" x="196.0" y="120" text-anchor="middle">0%</text><line class="grid" x1="314.0" y1="10" x2="314.0" y2="102"/><text class="tick" x="314.0" y="120" text-anchor="middle">25%</text><line class="grid" x1="432.0" y1="10" x2="432.0" y2="102"/><text class="tick" x="432.0" y="120" text-anchor="middle">50%</text><line class="grid" x1="550.0" y1="10" x2="550.0" y2="102"/><text class="tick" x="550.0" y="120" text-anchor="middle">75%</text><line class="grid" x1="668.0" y1="10" x2="668.0" y2="102"/><text class="tick" x="668.0" y="120" text-anchor="middle">100%</text><text class="rowlab" x="182" y="37.0">Multi-view consensus</text><rect class="bar s1" x="196.0" y="25.0" width="383.3" height="16" rx="4"><title>Multi-view consensus: 81.2% agreement with human labels</title></rect><text class="val em" x="589.3" y="37.0">81.2%</text><text class="rowlab" x="182" y="83.0">Hop-count baseline</text><rect class="bar s2" x="196.0" y="71.0" width="304.9" height="16" rx="4"><title>Hop-count baseline: 64.6% agreement with human labels</title></rect><text class="val em" x="510.9" y="83.0">64.6%</text><line class="whisk s1" x1="641.3" y1="33.0" x2="641.3" y2="79.0"/><text class="val em" x="648.3" y="60.0">+16.6 pts</text></svg><p class="note">Applied Science internship, Microsoft. Hop count is the standard proxy for multi-hop difficulty; it is a real signal but an incomplete one.</p><details class="tbl"><summary>Table view</summary><table><thead><tr><th>Scorer</th><th>Agreement</th></tr></thead><tbody><tr><td>Multi-view consensus</td><td>81.2%</td></tr><tr><td>Hop-count baseline</td><td>64.6%</td></tr></tbody></table></details></figure></div></div></div><div class="xp"><p class="t">IPSI Belgrade &mdash; <em>Research Collaborator</em></p><span class="w">Feb 2026 &ndash; present</span><div class="meta"><span class="pill">with Prof. Veljko Milutinović</span></div><ul class="pts"><li>Working with Prof. Veljko Milutinović on a comparative survey of emerging computing paradigms for AI workloads.</li><li>Running the literature review and contributing technical review for the survey and an accompanying book.</li></ul></div></div></div></section><section id="work"><div class="wrap"><div class="shead"><div><span class="eb">Projects</span><h2>Projects</h2></div><p class="sdek">Six projects. Filter by the kind of work you care about.</p></div><div class="rule"></div><div class="chips"><button class="chip" type="button" data-filter="all" aria-pressed="true">All</button><button class="chip" type="button" data-filter="ml" aria-pressed="false">ML systems</button><button class="chip" type="button" data-filter="systems" aria-pressed="false">Performance</button><button class="chip" type="button" data-filter="retrieval" aria-pressed="false">Retrieval &amp; NLP</button><button class="chip" type="button" data-filter="infra" aria-pressed="false">Infrastructure</button><button class="chip" type="button" data-filter="research" aria-pressed="false">Research</button><button class="chip" type="button" data-filter="data" aria-pressed="false">Data science</button><button class="chip" type="button" data-filter="algorithms" aria-pressed="false">Algorithms</button></div><div class="grid"><article class="card" data-tags="research ml"><div class="top"><div class="thumb"><svg class="mark" viewBox="0 0 76 50" aria-hidden="true" preserveAspectRatio="xMidYMid meet"><polyline class="a" points="8,33.2 26,20.4 44,22.7 63,14.5"/><path class="b" stroke-dasharray="4 3" d="M26 20.4C42 17.4 52 12.0 63 10.0"/><circle class="fa" cx="8" cy="33.2" r="2.7"/><circle class="fa" cx="26" cy="20.4" r="2.7"/><circle class="fa" cx="44" cy="22.7" r="2.7"/><circle class="fa" cx="63" cy="14.5" r="2.7"/><circle class="fb" cx="63" cy="10.0" r="2.7"/></svg></div><div><h3><a href="https://github.com/urosavurdic/dpo-safety-representations">Internal Representations of Safety Across Post-Training</a></h3><span class="when">Aug – Sep 2026</span></div></div><p class="res">A controlled nine-checkpoint chain with a <b>frozen 654-prompt benchmark</b>, preregistered analysis and cross-fitted causal estimates.</p><div class="foot"><span class="tag">research</span><span class="tag">ml</span><a class="go" href="https://github.com/urosavurdic/dpo-safety-representations">GitHub repository <svg viewBox="0 0 24 24" class="" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M4 12h14m0 0-5-5m5 5-5 5"/></svg></a></div></article><article class="card" data-tags="ml retrieval"><div class="top"><div class="thumb"><svg class="mark" viewBox="0 0 76 50" aria-hidden="true" preserveAspectRatio="xMidYMid meet"><path class="g" d="M8 25h36M20 16c12 0 18 5 24 9M20 34c12 0 18-5 24-9"/><circle class="fa" cx="8" cy="25" r="2.4"/><circle class="fa" cx="20" cy="16" r="2.4"/><circle class="fa" cx="20" cy="34" r="2.4"/><circle class="b" cx="57" cy="25" r="11"/><circle class="fb" cx="57" cy="25" r="3.2"/></svg></div><div><h3><a href="https://github.com/urosavurdic/embeddings-based-code-search-engine">Code Search Engine with Contrastive Learning</a></h3><span class="when">Nov 2025</span></div></div><p class="res">Contrastive fine-tuning on 20k CoSQA pairs took MRR@10 from <b>0.786 to 0.911</b>, with FAISS retrieval over 550+ indexed snippets.</p><div class="foot"><span class="tag">ml</span><span class="tag">retrieval</span><a class="go" href="https://github.com/urosavurdic/embeddings-based-code-search-engine">GitHub repository <svg viewBox="0 0 24 24" class="" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M4 12h14m0 0-5-5m5 5-5 5"/></svg></a></div></article><article class="card" data-tags="systems ml"><div class="top"><div class="thumb"><svg class="mark" viewBox="0 0 76 50" aria-hidden="true" preserveAspectRatio="xMidYMid meet"><line class="g" x1="6" y1="5.0" x2="70.0" y2="5.0"/><circle class="fa" cx="70.0" cy="5.0" r="3"/><line class="g" x1="6" y1="14.5" x2="61.0" y2="14.5"/><circle class="fa" cx="61.0" cy="14.5" r="3"/><line class="g" x1="6" y1="24.0" x2="53.4" y2="24.0"/><circle class="fa" cx="53.4" cy="24.0" r="3"/><line class="g" x1="6" y1="33.5" x2="25.2" y2="33.5"/><circle class="fb" cx="25.2" cy="33.5" r="3"/><line class="g" x1="6" y1="43.0" x2="13.7" y2="43.0"/><circle class="fa" cx="13.7" cy="43.0" r="3"/></svg></div><div><h3><a href="https://github.com/urosavurdic/attention-mechanism-paradigms">Attention Mechanisms Across Computational Paradigms</a></h3><span class="when">Apr – May 2026</span></div></div><p class="res">Benchmarked attention across <b>12 computational paradigms and 17 implementations</b> — six measured on CPU, an NVIDIA T4 and a TPU v5e, the rest simulated. Traced a <b>92&times;</b> throughput gap in one PyTorch call to silent FP32/FP16 kernel dispatch.</p><div class="foot"><span class="tag">systems</span><span class="tag">ml</span><a class="go" href="https://github.com/urosavurdic/attention-mechanism-paradigms">GitHub repository <svg viewBox="0 0 24 24" class="" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M4 12h14m0 0-5-5m5 5-5 5"/></svg></a></div></article><article class="card" data-tags="ml infra"><div class="top"><div class="thumb"><svg class="mark" viewBox="0 0 76 50" aria-hidden="true" preserveAspectRatio="xMidYMid meet"><path class="a" d="M4 31c4-13 7 9 11-2s7-10 10 1"/><path class="g" d="M33 25h10m-3.5-3.5L43 25l-3.5 3.5"/><rect class="b" x="50" y="13" width="22" height="24" rx="6"/><path class="g" d="M56 22h10M56 28h6"/></svg></div><div><h3><a href="https://github.com/urosavurdic/Written-Text-Recognizer">Handwritten Text Recognition System</a></h3><span class="when">Aug – Oct 2025</span></div></div><p class="res">CNN-LSTM and ResNet-Transformer recognition models, packaged as a Dockerized FastAPI service with <b>W&amp;B tracking and CircleCI</b>, architected for AWS Lambda.</p><div class="foot"><span class="tag">ml</span><span class="tag">infra</span><a class="go" href="https://github.com/urosavurdic/Written-Text-Recognizer">GitHub repository <svg viewBox="0 0 24 24" class="" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M4 12h14m0 0-5-5m5 5-5 5"/></svg></a></div></article><article class="card" data-tags="data"><div class="top"><div class="thumb"><svg class="mark" viewBox="0 0 76 50" aria-hidden="true" preserveAspectRatio="xMidYMid meet"><path class="a" d="M6 42 70 9"/><circle class="fb" cx="12" cy="38" r="2.4"/><circle class="fb" cx="22" cy="35" r="2.4"/><circle class="fb" cx="30" cy="29" r="2.4"/><circle class="fb" cx="38" cy="30" r="2.4"/><circle class="fb" cx="47" cy="22" r="2.4"/><circle class="fb" cx="56" cy="18" r="2.4"/><circle class="fb" cx="65" cy="12" r="2.4"/></svg></div><div><h3><a href="https://github.com/urosavurdic/Nordeus-Challenge-DS-ML">Applied ML and Data Science Projects</a></h3><span class="when">Mar – Oct 2025</span></div></div><p class="res">Engagement prediction to <b>MAE 5.06</b> from 30+ features over 90k sessions, plus A/B tests worked both frequentist and Bayesian.</p><div class="foot"><span class="tag">data</span><a class="go" href="https://github.com/urosavurdic/Nordeus-Challenge-DS-ML">GitHub repository <svg viewBox="0 0 24 24" class="" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M4 12h14m0 0-5-5m5 5-5 5"/></svg></a></div></article><article class="card" data-tags="algorithms"><div class="top"><div class="thumb"><svg class="mark" viewBox="0 0 76 50" aria-hidden="true" preserveAspectRatio="xMidYMid meet"><path class="b" stroke-dasharray="4 3" d="M6 14c12 6 16 30 30 19s22 11 34 3"/><path class="a" d="M6 8c8 24 18 30 32 32 14 2 24 1 32 3"/><circle class="fa" cx="6" cy="8" r="2.6"/><circle class="fa" cx="70" cy="43" r="2.6"/></svg></div><div><h3><a href="https://github.com/urosavurdic/optimization-methods">Optimization Methods</a></h3><span class="when">Nov – Dec 2025</span></div></div><p class="res">Backpropagation written from scratch in NumPy and raced against a genetic algorithm, plus <b>Lin&ndash;Kernighan</b> and differential evolution.</p><div class="foot"><span class="tag">algorithms</span><a class="go" href="https://github.com/urosavurdic/optimization-methods">GitHub repository <svg viewBox="0 0 24 24" class="" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M4 12h14m0 0-5-5m5 5-5 5"/></svg></a></div></article></div></div></section><section id="research"><div class="wrap wide"><div class="shead"><div><span class="eb">Research</span><h2>Research and engineering, in detail</h2></div><p class="sdek">Three projects with the measurements behind them. Every figure has a table view underneath with the exact numbers.</p></div><div class="rule"></div><div class="deep"><div class="head"><h3><a href="https://github.com/urosavurdic/dpo-safety-representations">Internal Representations of Safety Across Post-Training</a></h3><span class="when">Aug – Sep 2026</span></div><div class="meta"><span class="pill">Independent research</span><span class="pill">PyTorch, LoRA, TRL, interpretability</span></div><p class="finding"><span class="fk">Finding</span>Ablating the refusal direction changed behavior in all four training branches, but the size of that change varied by roughly 13x depending on the path taken — and the branch with the largest behavioral shift carried the smallest direction-specific effect.</p><div class="deep-grid"><div class="deep-prose"><div class="glance"><div><span class="gk">Question</span><span class="gv">Does preference optimization create a new internal safety representation, or modify one that is already there?</span></div><div><span class="gk">Setup</span><span class="gv">Nine Qwen2.5-1.5B checkpoints across instruction tuning, safety SFT and DPO, crossed over two instruction corpora with a direct-DPO control.</span></div><div><span class="gk">Result</span><span class="gv">In this setup the refusal direction was largely established before DPO; DPO mainly changed its magnitude, and how much it mattered depended on the training path.</span></div><div><span class="gk">Caveats</span><span class="gv">One model, one scale (1.5B), one seed per cell. The transfer study is post hoc and outside the preregistration. No multiplicity correction.</span></div></div><ul class="pts"><li>Trained a nine-checkpoint chain on Qwen2.5-1.5B — base → helpful SFT → safety SFT → DPO — crossed over two instruction corpora, with a direct-DPO arm that skips safety SFT as the control. Nine LoRA checkpoints, matched preference data, one factor changed at a time.</li><li>Fixed the benchmark, the direction-estimation procedure and two confirmatory behavioral endpoints in a preregistered analysis plan before looking at any outcome, then recorded every deviation from it.</li><li>Found the harmful/benign contrast forms during instruction tuning rather than DPO (adjacent-stage cosine 0.65 → 0.96 → 0.93), and that DPO amplifies it instead of adding structure: residualize the contrast away and the remaining space carries no linearly decodable harm category, +0.004 with a 95% CI of [-0.018, +0.027].</li><li>Measured the direction's causal weight by ablation against a magnitude-matched random control, cross-fitted out-of-fold, n=120 per branch. Every interval excludes zero, so the direction is load-bearing in all four — but the effects span roughly thirteen-fold, and the corpus × training-history interaction is +0.097 [+0.040, +0.150].</li><li>Ran a cross-branch transfer study over all 12 ordered pairs: injecting one branch's DPO activation delta into another's pre-DPO model moves behavior toward that branch's post-DPO profile, class-conditioned rather than prompt-specific, surviving per-row norm matching, and not reducible to a single refusal direction.</li><li>Built the whole pipeline: training, generation, a refusal classifier combining a frozen regex scorer with two LLM judges, activation capture, intervention tooling, cross-fitted statistics, CI, and a provenance sidecar binding every committed number to the benchmark hash it came from.</li></ul></div><div class="figcol"><figure class="viz"><figcaption class="cap"><b>Sharpening an existing axis drags the ambiguous cases with it.</b> Harmful prompts with the wrongdoing vocabulary removed, measured against each stage&rsquo;s own refusal direction. Skip safety SFT and preference optimization overshoots &mdash; those prompts end up <em>past</em> the overtly harmful cluster.</figcaption><div class="lg"><span class="lg-i"><i class="sw s1"></i>instruction tuning → safety SFT → DPO</span><span class="lg-i"><i class="sw s2"></i>DPO straight from instruction tuning</span></div><svg viewBox="0 0 760 300" class="fig" role="img" aria-label="Where ambiguous prompts sit between the benign and harmful clusters, across training stages"><line class="ref" x1="52" y1="244.0" x2="684.0" y2="244.0"/><text class="reflab lead" x="58.0" y="237.0">benign cluster</text><line class="ref" x1="52" y1="56.2" x2="684.0" y2="56.2"/><text class="reflab lead" x="58.0" y="49.2">overtly harmful cluster</text><line class="grid" x1="52" y1="197.0" x2="684.0" y2="197.0"/><line class="grid" x1="52" y1="150.1" x2="684.0" y2="150.1"/><line class="grid" x1="52" y1="103.1" x2="684.0" y2="103.1"/><text class="tick" x="43" y="248.0" text-anchor="end">0.0</text><text class="tick" x="43" y="154.1" text-anchor="end">0.5</text><text class="tick" x="43" y="60.2" text-anchor="end">1.0</text><text class="tick" x="52.0" y="264.0" text-anchor="middle">Base</text><text class="tick" x="262.7" y="264.0" text-anchor="middle">Instruction</text><text class="tick" x="262.7" y="276.0" text-anchor="middle">tuning</text><text class="tick" x="473.3" y="264.0" text-anchor="middle">Safety</text><text class="tick" x="473.3" y="276.0" text-anchor="middle">SFT</text><text class="tick" x="684.0" y="264.0" text-anchor="middle">DPO</text><polyline class="ln s1" points="52.0,182.0 262.7,108.8 473.3,121.9 684.0,75.0"/><polyline class="ln s2" points="52.0,182.0 262.7,108.8 684.0,48.7"/><circle class="dot s1 ring" cx="52.0" cy="182.0" r="5"><title>Base: 0.33</title></circle><circle class="dot s1 ring" cx="262.7" cy="108.8" r="5"><title>Instruction tuning: 0.72</title></circle><circle class="dot s1 ring" cx="473.3" cy="121.9" r="5"><title>Safety SFT: 0.65</title></circle><circle class="dot s1 ring" cx="684.0" cy="75.0" r="5"><title>DPO: 0.90</title></circle><circle class="dot s2 ring" cx="684.0" cy="48.7" r="5"><title>Direct DPO: 1.04</title></circle><text class="val" x="694.0" y="79.0">0.90</text><text class="val em" x="694.0" y="52.7">1.04</text></svg><p class="note">Layer 24. 0 = benign cluster, 1 = overtly harmful cluster.</p><details class="tbl"><summary>Table view</summary><table><thead><tr><th>Stage</th><th>Position</th></tr></thead><tbody><tr><td>Base</td><td>0.33</td></tr><tr><td>Instruction tuning</td><td>0.72</td></tr><tr><td>Safety SFT</td><td>0.65</td></tr><tr><td>DPO</td><td>0.90</td></tr><tr><td>DPO direct from instruction tuning</td><td>1.04</td></tr></tbody></table></details></figure><figure class="viz"><figcaption class="cap"><b>The mechanism is load-bearing everywhere &mdash; but thirteen times more in one branch than another.</b> Ablating the refusal direction, cross-fitted out-of-fold. Every interval excludes zero, so the direction matters in all four. How much depends entirely on the training path.</figcaption><div class="lg"><span class="lg-i"><i class="sw s1"></i>via safety SFT</span><span class="lg-i"><i class="sw s2"></i>DPO direct</span></div><svg viewBox="0 0 760 208" class="fig" role="img" aria-label="Causal effect of ablating the refusal direction, by training branch, with 95 percent confidence intervals"><line class="ref" x1="232.0" y1="12" x2="232.0" y2="164"/><text class="tick" x="232.0" y="182" text-anchor="middle">0.00</text><line class="grid" x1="341.3" y1="12" x2="341.3" y2="164"/><text class="tick" x="341.3" y="182" text-anchor="middle">0.05</text><line class="grid" x1="450.6" y1="12" x2="450.6" y2="164"/><text class="tick" x="450.6" y="182" text-anchor="middle">0.10</text><line class="grid" x1="559.9" y1="12" x2="559.9" y2="164"/><text class="tick" x="559.9" y="182" text-anchor="middle">0.15</text><line class="grid" x1="669.2" y1="12" x2="669.2" y2="164"/><text class="tick" x="669.2" y="182" text-anchor="middle">0.20</text><text class="axname" x="467.0" y="204" text-anchor="middle">effect vs magnitude-matched random control</text><text class="rowlab" x="218" y="35.0">Safety SFT then DPO, Alpaca</text><line class="whisk s1" x1="461.5" y1="31.0" x2="675.8" y2="31.0"/><line class="cap-t s1" x1="461.5" y1="26.0" x2="461.5" y2="36.0"/><line class="cap-t s1" x1="675.8" y1="26.0" x2="675.8" y2="36.0"/><circle class="dot s1 ring" cx="568.7" cy="31.0" r="5.5"><title>Safety SFT then DPO, Alpaca: +0.154, 95% CI [+0.105, +0.203]</title></circle><text class="val" x="685.8" y="35.0">+0.154</text><text class="rowlab" x="218" y="73.0">Safety SFT then DPO, Dolly</text><line class="whisk s1" x1="242.9" y1="69.0" x2="417.8" y2="69.0"/><line class="cap-t s1" x1="242.9" y1="64.0" x2="242.9" y2="74.0"/><line class="cap-t s1" x1="417.8" y1="64.0" x2="417.8" y2="74.0"/><circle class="dot s1 ring" cx="328.2" cy="69.0" r="5.5"><title>Safety SFT then DPO, Dolly: +0.044, 95% CI [+0.005, +0.085]</title></circle><text class="val" x="427.8" y="73.0">+0.044</text><text class="rowlab" x="218" y="111.0">DPO direct from M1, Alpaca</text><line class="whisk s2" x1="260.4" y1="107.0" x2="317.3" y2="107.0"/><line class="cap-t s2" x1="260.4" y1="102.0" x2="260.4" y2="112.0"/><line class="cap-t s2" x1="317.3" y1="102.0" x2="317.3" y2="112.0"/><circle class="dot s2 ring" cx="286.7" cy="107.0" r="5.5"><title>DPO direct from M1, Alpaca: +0.025, 95% CI [+0.013, +0.039]</title></circle><text class="val" x="327.3" y="111.0">+0.025</text><text class="rowlab" x="218" y="149.0">DPO direct from M1, Dolly</text><line class="whisk s2" x1="238.6" y1="145.0" x2="282.3" y2="145.0"/><line class="cap-t s2" x1="238.6" y1="140.0" x2="238.6" y2="150.0"/><line class="cap-t s2" x1="282.3" y1="140.0" x2="282.3" y2="150.0"/><circle class="dot s2 ring" cx="258.2" cy="145.0" r="5.5"><title>DPO direct from M1, Dolly: +0.012, 95% CI [+0.003, +0.023]</title></circle><text class="val" x="292.3" y="149.0">+0.012</text></svg><p class="note">n=120 per branch, 95% confidence intervals. Post hoc, one seed per cell, not multiplicity-corrected.</p><details class="tbl"><summary>Table view</summary><table><thead><tr><th>Branch</th><th>Effect</th><th>95% CI</th></tr></thead><tbody><tr><td>Safety SFT then DPO, Alpaca</td><td>+0.154</td><td>[+0.105, +0.203]</td></tr><tr><td>Safety SFT then DPO, Dolly</td><td>+0.044</td><td>[+0.005, +0.085]</td></tr><tr><td>DPO direct from M1, Alpaca</td><td>+0.025</td><td>[+0.013, +0.039]</td></tr><tr><td>DPO direct from M1, Dolly</td><td>+0.012</td><td>[+0.003, +0.023]</td></tr></tbody></table></details></figure></div></div></div><div class="deep"><div class="head"><h3><a href="https://github.com/urosavurdic/attention-mechanism-paradigms">Attention Mechanisms Across Computational Paradigms</a></h3><span class="when">Apr – May 2026</span></div><div class="meta"><span class="pill">Benchmarking and profiling</span><span class="pill">PyTorch, JAX, NumPy</span></div><p class="finding"><span class="fk">Finding</span>One PyTorch call, 92x apart. scaled_dot_product_attention silently dispatches to the math fallback in FP32 and the memory-efficient kernel in FP16 — 104 against 9,633 GFLOP/s on the same T4, with the chosen backend logged on every run to prove it.</p><div class="deep-grid"><div class="deep-prose"><ul class="pts"><li>Benchmarked attention across 12 computational paradigms and 17 implementations, decomposed into five stages and measured for FLOPs, memory traffic and arithmetic intensity. Six implementations ran on hardware I had access to — CPU, an NVIDIA T4 and a TPU v5e; the rest are simulators or analytical cost models.</li><li>Traced a 92x throughput gap in a single PyTorch call to silent backend dispatch between FP32 and FP16, confirmed by logging the selected kernel on every run.</li><li>Built the harness as an extensible package: an abstract paradigm interface, a registry decorator, dataclass metrics and a structured experiment logger.</li></ul><p class="aside">Presented at the 5th Serbian International Conference on Applied Artificial Intelligence (SICAAI), Kragujevac, May 2026.</p></div><div class="figcol"><figure class="viz"><figcaption class="cap"><b>Common-scale comparison: 14 implementations at n=2048, d=256.</b> Roughly seven orders of magnitude separate a TPU from a Turing machine. The FLOP count is the same; the execution cost is not.</figcaption><div class="lg"><span class="lg-i"><i class="sw s1"></i>measured on hardware</span><span class="lg-i"><i class="sw s2"></i>simulator or cost model</span></div><svg viewBox="0 0 760 402" class="fig" role="img" aria-label="Attention throughput across computational paradigms, log scale"><line class="grid" x1="208.0" y1="8" x2="208.0" y2="358"/><text class="tick" x="208.0" y="375" text-anchor="middle">10⁻⁴</text><line class="grid" x1="267.5" y1="8" x2="267.5" y2="358"/><text class="tick" x="267.5" y="375" text-anchor="middle">10⁻³</text><line class="grid" x1="327.1" y1="8" x2="327.1" y2="358"/><text class="tick" x="327.1" y="375" text-anchor="middle">10⁻²</text><line class="grid" x1="386.6" y1="8" x2="386.6" y2="358"/><text class="tick" x="386.6" y="375" text-anchor="middle">10⁻¹</text><line class="grid" x1="446.2" y1="8" x2="446.2" y2="358"/><text class="tick" x="446.2" y="375" text-anchor="middle">10⁰</text><line class="grid" x1="505.7" y1="8" x2="505.7" y2="358"/><text class="tick" x="505.7" y="375" text-anchor="middle">10¹</text><line class="grid" x1="565.2" y1="8" x2="565.2" y2="358"/><text class="tick" x="565.2" y="375" text-anchor="middle">10²</text><line class="grid" x1="624.8" y1="8" x2="624.8" y2="358"/><text class="tick" x="624.8" y="375" text-anchor="middle">10³</text><line class="grid" x1="684.3" y1="8" x2="684.3" y2="358"/><text class="tick" x="684.3" y="375" text-anchor="middle">10⁴</text><text class="axname" x="467.0" y="398" text-anchor="middle">GFLOP/s</text><text class="rowlab" x="196" y="24.5">TPU, fused (JAX/XLA)</text><line class="stem" x1="208.0" y1="20.5" x2="696.1" y2="20.5"/><circle class="dot s1" cx="696.1" cy="20.5" r="5.5"><title>TPU, fused (JAX/XLA): 15,772 GFLOP/s (measured)</title></circle><text class="val" x="706.1" y="24.5">15,772</text><text class="rowlab" x="196" y="49.5">GPU FP16, decomposed</text><line class="stem" x1="208.0" y1="45.5" x2="687.5" y2="45.5"/><circle class="dot s1" cx="687.5" cy="45.5" r="5.5"><title>GPU FP16, decomposed: 11,327 GFLOP/s (measured)</title></circle><text class="val" x="697.5" y="49.5">11,327</text><text class="rowlab" x="196" y="74.5">GPU FP16, fused SDPA</text><line class="stem" x1="208.0" y1="70.5" x2="683.4" y2="70.5"/><circle class="dot s1" cx="683.4" cy="70.5" r="5.5"><title>GPU FP16, fused SDPA: 9,633 GFLOP/s (measured)</title></circle><text class="val" x="693.4" y="74.5">9,633</text><text class="rowlab" x="196" y="99.5">TPU, systolic array</text><line class="stem" x1="208.0" y1="95.5" x2="680.7" y2="95.5"/><circle class="dot s2" cx="680.7" cy="95.5" r="5.5"><title>TPU, systolic array: 8,706 GFLOP/s (modeled)</title></circle><text class="val" x="690.7" y="99.5">8,706</text><text class="rowlab" x="196" y="124.5">GPU FP32, decomposed</text><line class="stem" x1="208.0" y1="120.5" x2="673.5" y2="120.5"/><circle class="dot s2" cx="673.5" cy="120.5" r="5.5"><title>GPU FP32, decomposed: 6,592 GFLOP/s (modeled)</title></circle><text class="val" x="683.5" y="124.5">6,592</text><text class="rowlab" x="196" y="149.5">Dataflow (Maxeler-style)</text><line class="stem" x1="208.0" y1="145.5" x2="624.2" y2="145.5"/><circle class="dot s2" cx="624.2" cy="145.5" r="5.5"><title>Dataflow (Maxeler-style): 977 GFLOP/s (modeled)</title></circle><text class="val" x="634.2" y="149.5">977</text><text class="rowlab" x="196" y="174.5">Optical (photonic MZI)</text><line class="stem" x1="208.0" y1="170.5" x2="607.4" y2="170.5"/><circle class="dot s2" cx="607.4" cy="170.5" r="5.5"><title>Optical (photonic MZI): 510 GFLOP/s (modeled)</title></circle><text class="val" x="617.4" y="174.5">510</text><text class="rowlab" x="196" y="199.5">GPU FP32, fused SDPA</text><line class="stem" x1="208.0" y1="195.5" x2="566.3" y2="195.5"/><circle class="dot s1" cx="566.3" cy="195.5" r="5.5"><title>GPU FP32, fused SDPA: 104 GFLOP/s (measured)</title></circle><text class="val" x="576.3" y="199.5">104</text><text class="rowlab" x="196" y="224.5">CPU, decomposed (AVX2)</text><line class="stem" x1="208.0" y1="220.5" x2="521.1" y2="220.5"/><circle class="dot s1" cx="521.1" cy="220.5" r="5.5"><title>CPU, decomposed (AVX2): 18 GFLOP/s (measured)</title></circle><text class="val" x="531.1" y="224.5">18</text><text class="rowlab" x="196" y="249.5">CPU, fused SDPA</text><line class="stem" x1="208.0" y1="245.5" x2="520.5" y2="245.5"/><circle class="dot s1" cx="520.5" cy="245.5" r="5.5"><title>CPU, fused SDPA: 18 GFLOP/s (measured)</title></circle><text class="val" x="530.5" y="249.5">18</text><text class="rowlab" x="196" y="274.5">GaAs RISC-V</text><line class="stem" x1="208.0" y1="270.5" x2="397.1" y2="270.5"/><circle class="dot s2" cx="397.1" cy="270.5" r="5.5"><title>GaAs RISC-V: 0.15 GFLOP/s (modeled)</title></circle><text class="val" x="407.1" y="274.5">0.15</text><text class="rowlab" x="196" y="299.5">IoT edge (ARM M4F)</text><line class="stem" x1="208.0" y1="295.5" x2="389.1" y2="295.5"/><circle class="dot s2" cx="389.1" cy="295.5" r="5.5"><title>IoT edge (ARM M4F): 0.11 GFLOP/s (modeled)</title></circle><text class="val" x="399.1" y="299.5">0.11</text><text class="rowlab" x="196" y="324.5">WSN, 64 nodes</text><line class="stem" x1="208.0" y1="320.5" x2="333.9" y2="320.5"/><circle class="dot s2" cx="333.9" cy="320.5" r="5.5"><title>WSN, 64 nodes: 0.01 GFLOP/s (modeled)</title></circle><text class="val" x="343.9" y="324.5">0.01</text><text class="rowlab" x="196" y="349.5">CdTe Turing machine</text><line class="stem" x1="208.0" y1="345.5" x2="258.3" y2="345.5"/><circle class="dot s2" cx="258.3" cy="345.5" r="5.5"><title>CdTe Turing machine: 0.0007 GFLOP/s (modeled)</title></circle><text class="val" x="268.3" y="349.5">0.0007</text></svg><p class="note"><b>Blue rows ran on hardware I had access to — CPU, an NVIDIA T4 and a TPU v5e. Orange rows are simulators or analytical cost models, including the roofline estimate for decomposed FP32 GPU and the systolic-array model for decomposed TPU.</b> The full benchmark covers 12 paradigms and 17 implementations; a paradigm is the technology, and CPU, GPU and TPU each carry more than one implementation. This chart shows the 14 that share n=2048, d=256 — the chemical, biological and quantum simulators only run at n=32, d=16 and are reported separately.</p><details class="tbl"><summary>Table view</summary><table><thead><tr><th>Implementation</th><th>GFLOP/s</th><th>Source</th></tr></thead><tbody><tr><td>TPU, fused (JAX/XLA)</td><td>15,772</td><td>measured</td></tr><tr><td>GPU FP16, decomposed</td><td>11,327</td><td>measured</td></tr><tr><td>GPU FP16, fused SDPA</td><td>9,633</td><td>measured</td></tr><tr><td>TPU, systolic array</td><td>8,706</td><td>modeled</td></tr><tr><td>GPU FP32, decomposed</td><td>6,592</td><td>modeled</td></tr><tr><td>Dataflow (Maxeler-style)</td><td>977</td><td>modeled</td></tr><tr><td>Optical (photonic MZI)</td><td>510</td><td>modeled</td></tr><tr><td>GPU FP32, fused SDPA</td><td>104</td><td>measured</td></tr><tr><td>CPU, decomposed (AVX2)</td><td>18</td><td>measured</td></tr><tr><td>CPU, fused SDPA</td><td>18</td><td>measured</td></tr><tr><td>GaAs RISC-V</td><td>0.15</td><td>modeled</td></tr><tr><td>IoT edge (ARM M4F)</td><td>0.11</td><td>modeled</td></tr><tr><td>WSN, 64 nodes</td><td>0.01</td><td>modeled</td></tr><tr><td>CdTe Turing machine</td><td>0.0007</td><td>modeled</td></tr></tbody></table></details></figure></div></div></div><div class="deep"><div class="head"><h3><a href="https://github.com/urosavurdic/embeddings-based-code-search-engine">Code Search Engine with Contrastive Learning</a></h3><span class="when">Nov 2025</span></div><div class="meta"><span class="pill">PyTorch Lightning, FAISS, Sentence-Transformers</span></div><p class="finding"><span class="fk">Finding</span>Contrastive fine-tuning moved MRR@10 from 0.786 to 0.911 on CoSQA — a 16% relative gain, with NDCG@10 and Recall@10 up alongside it.</p><div class="deep-grid"><div class="deep-prose"><ul class="pts"><li>Fine-tuned a bi-encoder (all-MiniLM-L6-v2) with InfoNCE contrastive loss on 20k CoSQA query-code pairs, improving MRR@10 from 0.786 to 0.911 (+16.0%), with NDCG@10 +12.1% and Recall@10 +2.8% over the pretrained baseline.</li><li>Enabled semantic search across 550+ indexed code snippets with FAISS and cosine similarity.</li><li>Set up a reproducible training and evaluation pipeline with PyTorch Lightning, AdamW with warmup, Weights &amp; Biases tracking, and a torchmetrics evaluation suite.</li></ul></div><div class="figcol"><figure class="viz"><figcaption class="cap"><b>Contrastive fine-tuning, measured three ways.</b> The same bi-encoder before and after InfoNCE training on 20k CoSQA query-code pairs: +0.125 MRR@10, a 15.9% relative gain.</figcaption><div class="lg"><span class="lg-i"><i class="sw s2"></i>pretrained baseline</span><span class="lg-i"><i class="sw s1"></i>after fine-tuning</span></div><svg viewBox="0 0 760 216" class="fig" role="img" aria-label="Retrieval quality before and after contrastive fine-tuning"><line class="grid" x1="118.0" y1="12" x2="118.0" y2="174"/><text class="tick" x="118.0" y="192" text-anchor="middle">0.7</text><line class="grid" x1="300.0" y1="12" x2="300.0" y2="174"/><text class="tick" x="300.0" y="192" text-anchor="middle">0.8</text><line class="grid" x1="482.0" y1="12" x2="482.0" y2="174"/><text class="tick" x="482.0" y="192" text-anchor="middle">0.9</text><line class="grid" x1="664.0" y1="12" x2="664.0" y2="174"/><text class="tick" x="664.0" y="192" text-anchor="middle">1.0</text><text class="rowlab" x="104" y="43.0">MRR@10</text><line class="stem" x1="274.5" y1="39.0" x2="502.0" y2="39.0"/><circle class="dot s2 ring" cx="274.5" cy="39.0" r="5.5"><title>MRR@10 before: 0.786</title></circle><circle class="dot s1 ring" cx="502.0" cy="39.0" r="5.5"><title>MRR@10 after: 0.911</title></circle><text class="val em" x="513.0" y="43.0">0.911</text><text class="rowlab" x="104" y="97.0">NDCG@10</text><line class="stem" x1="356.4" y1="93.0" x2="540.2" y2="93.0"/><circle class="dot s2 ring" cx="356.4" cy="93.0" r="5.5"><title>NDCG@10 before: 0.831</title></circle><circle class="dot s1 ring" cx="540.2" cy="93.0" r="5.5"><title>NDCG@10 after: 0.932</title></circle><text class="val em" x="551.2" y="97.0">0.932</text><text class="rowlab" x="104" y="151.0">Recall@10</text><line class="stem" x1="607.6" y1="147.0" x2="656.7" y2="147.0"/><circle class="dot s2 ring" cx="607.6" cy="147.0" r="5.5"><title>Recall@10 before: 0.969</title></circle><circle class="dot s1 ring" cx="656.7" cy="147.0" r="5.5"><title>Recall@10 after: 0.996</title></circle><text class="val em" x="667.7" y="151.0">0.996</text></svg><p class="note">Evaluated with torchmetrics on the held-out split. Recall@10 was already high, so the gain lands in ranking quality rather than coverage.</p><details class="tbl"><summary>Table view</summary><table><thead><tr><th>Metric</th><th>Before</th><th>After</th></tr></thead><tbody><tr><td>MRR@10</td><td>0.786</td><td>0.911</td></tr><tr><td>NDCG@10</td><td>0.831</td><td>0.932</td></tr><tr><td>Recall@10</td><td>0.969</td><td>0.996</td></tr></tbody></table></details></figure></div></div></div></div></section><section id="background" class="band"><div class="wrap"><div class="shead"><div><span class="eb">Background</span><h2>Background</h2></div><p class="sdek">Where I studied, what I volunteer at, the tooling I actually reach for, and what has been recognized.</p></div><div class="rule"></div><div class="subhead"><h3>Volunteering</h3><p>Volunteer with EESTEC, the European EECS student association — 34 universities and 4,000+ members — since February 2019. It is where I learned to run teams and teach.</p></div><div class="vol-grid"><div class="vol-main"><div class="tl"><div class="xp"><p class="t">EESTEC &mdash; <em>Soft Skills Trainer</em></p><span class="w">Aug 2021 – present</span><ul class="pts"><li>Delivered 100+ hours of training across 15+ topics to 400+ participants from across Europe — leadership, emotional intelligence, team dynamics, nonviolent communication.</li><li>Qualified through a 12-day intensive Training for Trainers, then two years delivering under mentorship before being certified by the EESTEC Training Team in 2023.</li></ul></div><div class="xp"><p class="t">EESTEC &mdash; <em>Training Team Coordinator, LC Belgrade</em></p><span class="w">Feb 2022 – May 2023</span><ul class="pts"><li>Owned the soft skills training program for the Belgrade branch — what got taught, by whom, and to whom — and helped organize the educational program for Soft Skills Academy Belgrade, a self-development project open to any student.</li><li>Mentored around 30 members across two generations; several went on to Chairperson, fundraising coordinator, and international project roles. Supported the branch's HR processes and worked with the board on team development and conflict resolution.</li></ul></div><div class="xp"><p class="t">EESTEC &mdash; <em>Regionalization Coordinator, then Project Leader</em></p><span class="w">Aug 2019 – Aug 2021</span><ul class="pts"><li>Led a 30-member international team through the COVID-19 transition, moving the program's events online, and restructured the project — merging two international teams into one and redefining how they operated.</li><li>Ran the Balkan regionalization program: online regional meetings and an in-person one hosted with LC Skopje, on how committees actually get run — applying for grants, fundraising, recruitment and HR practice.</li></ul></div><div class="xp"><p class="t">EESTEC &mdash; <em>PR Team Leader and Event Organizer</em></p><span class="w">2019</span><ul class="pts"><li>Led PR for Job Fair, one of Serbia's largest student career events — media outreach and coverage, reporting to the event coordinator.</li><li>Main organizer of a local student exchange from September to December 2019, and ran the Belgrade branch's social media as PR assistant to the board.</li></ul></div></div></div><div class="vol-side"><a class="letter" href="eestec-recommendation-letter.pdf" target="_blank" rel="noopener"><span class="sheet"><img class="back" src="assets/eestec-letter-p2.png" alt="" width="420" height="594" loading="lazy"><img class="front" src="assets/eestec-letter-p1.png" width="760" height="1075" loading="lazy" alt="First page of a recommendation letter from the EESTEC international board, on headed paper."></span><span class="cap"><b>Recommendation letter</b><span class="src">EESTEC International Board &middot; Zürich, August 2025</span><span class="sig">Christa Ward, Chairperson · Atina Velinovska, Vice Chairperson for Internal Affairs</span><span class="go">Read it &mdash; PDF, 2 pages</span></span></a><p class="topics"><span class="tk">Topics I train</span>Facilitation and meeting design · feedback and nonviolent communication · emotional intelligence · team dynamics · presentation · strategic and design thinking · problem solving and creativity · training design · learning from experience</p></div></div><div class="subhead top"><h3>Education, skills and recognition</h3></div><div class="cols"><div class="panel"><h4>Education</h4><div class="spec"><div><span class="k">in progress</span><span class="v"><b>M.Sc. Electrical Engineering &amp; Computer Science</b><span class="sub">University of Belgrade — School of Electrical Engineering (ETF) &middot; GPA 10/10 · evaluation, system security, optimization</span></span></div><div><span class="k">graduated Sep 2024</span><span class="v"><b>B.Sc. Electrical Engineering &amp; Computer Science</b><span class="sub">University of Belgrade — School of Electrical Engineering (ETF) &middot; signal processing, information theory · thesis: optimizing urban traffic congestion using data-based crowdsourcing systems</span></span></div><div><span class="k">Online coursework</span><span class="v"><a class="ln-a" href="https://fullstackdeeplearning.com/">Full Stack Deep Learning</a> <span class="sub-i">UC Berkeley</span> &middot; <a class="ln-a" href="https://cme295.stanford.edu/">CME295: Transformers &amp; Large Language Models</a> <span class="sub-i">Stanford</span> &middot; <a class="ln-a" href="https://www.statlearning.com/">An Introduction to Statistical Learning</a> <span class="sub-i">Stanford</span> &middot; Machine Learning Workshop <span class="sub-i">Polytechnic University of Madrid, 2019</span></span></div></div></div><div class="panel"><h4>Technical skills</h4><div class="spec"><div><span class="k">Languages</span><span class="v">Python, C/C++, SQL</span></div><div><span class="k">ML</span><span class="v">PyTorch, Transformers, Hugging Face, TRL, LoRA/PEFT, JAX</span></div><div><span class="k">Interpretability</span><span class="v">activation capture and steering, directional ablation, linear probing, representation geometry</span></div><div><span class="k">Statistics</span><span class="v">preregistration, cross-fitted out-of-fold estimation, bootstrap CIs, McNemar tests</span></div><div><span class="k">Tools</span><span class="v">Docker, AWS, Git, CI/CD, Weights &amp; Biases</span></div><div><span class="k">Spoken</span><span class="v">Serbian/Croatian — native · Macedonian — native · English — fluent · Russian and Bulgarian — understood · German — basic</span></div></div></div><div class="panel"><h4>Awards &amp; talks</h4><div class="spec"><div><span class="k">Award</span><span class="v">EESTECer of the Year — Board of the Association, one recipient per year across a 4,000+ member network (2021)</span></div><div><span class="k">Award</span><span class="v">3rd place, National Mathematics Competition — Mathematical Society of Serbia (2017)</span></div><div><span class="k">Award</span><span class="v">Best Student Start-Up Award — Science-Technology Park Belgrade (2022)</span></div><div><span class="k">Talk</span><span class="v">Analysis of Attention Mechanisms in the Context of Computational Paradigms — presented at the 5th Serbian International Conference on Applied Artificial Intelligence (SICAAI), Kragujevac, May 2026.</span></div></div><details class="tbl more"><summary>Additional recognition (3)</summary><ul class="plain"><li>Certified Soft Skills Trainer — EESTEC Training Team (2023)</li><li>3rd place, Case Study Competition — BEST Belgrade (2018)</li><li>National silver medal, judo — junior level</li></ul></details></div></div></div></section><footer id="contact"><div class="wrap"><div class="narrow"><p class="cta">Get in touch.</p><p></p><div class="flinks"><a class="btn pri" href="mailto:savurdic.uros@gmail.com"><svg viewBox="0 0 24 24" class="" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><rect x="3" y="5" width="18" height="14" rx="2.6"/><path d="m3.7 7.2 8.3 5.9 8.3-5.9"/></svg>Email me</a><a class="btn" href="Uros_Savurdic_Resume.pdf"><svg viewBox="0 0 24 24" class="" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 19.5h16"/></svg>Download CV</a><a class="btn" href="https://github.com/urosavurdic"><svg viewBox="0 0 24 24" class="" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="m9 5.5-6 6.5 6 6.5M15 5.5l6 6.5-6 6.5"/></svg>GitHub</a><a class="btn" href="https://www.linkedin.com/in/urosavurdic"><svg viewBox="0 0 24 24" class="" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M20 21v-1.8A4.2 4.2 0 0 0 15.8 15H8.2A4.2 4.2 0 0 0 4 19.2V21"/><circle cx="12" cy="7.2" r="3.9"/></svg>LinkedIn</a></div><p class="sig">Uroš Savurdić &middot; <a href="mailto:savurdic.uros@gmail.com">savurdic.uros@gmail.com</a></p></div></div></footer>
+<script>
+(function(){
+  var root=document.documentElement, KEY='theme';
+  try{ var t=localStorage.getItem(KEY); if(t) root.setAttribute('data-theme',t); }catch(e){}
+
+  var SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"'
+    +' stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/>'
+    +'<path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2'
+    +'M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg>';
+  var MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"'
+    +' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    +'<path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1Z"/></svg>';
+
+  var btn=document.getElementById('tgl');
+  function isDark(){ var t=root.getAttribute('data-theme');
+    if(t) return t==='dark';
+    return matchMedia('(prefers-color-scheme: dark)').matches; }
+  function lbl(){ var d=isDark();
+    btn.innerHTML=(d?SUN:MOON)+'<span>'+(d?'Light':'Dark')+'</span>';
+    btn.setAttribute('aria-label', d?'Switch to light theme':'Switch to dark theme'); }
+  if(btn){ lbl(); btn.addEventListener('click',function(){
+    var next = isDark() ? 'light' : 'dark';
+    root.setAttribute('data-theme',next); try{localStorage.setItem(KEY,next);}catch(e){} lbl(); }); }
+
+  // filter the work grid
+  var chips=[].slice.call(document.querySelectorAll('.chip'));
+  var cards=[].slice.call(document.querySelectorAll('.card[data-tags]'));
+  chips.forEach(function(c){ c.addEventListener('click',function(){
+    chips.forEach(function(o){ o.setAttribute('aria-pressed', o===c ? 'true':'false'); });
+    var f=c.dataset.filter;
+    cards.forEach(function(k){
+      k.hidden = !(f==='all' || k.dataset.tags.split(' ').indexOf(f)>-1); });
+  }); });
+
+  // Copy the address to the clipboard. A bare mailto: does nothing at all on a
+  // machine with no mail client configured, which is most of them, so the
+  // address is shown as text too and this is the one-click path.
+  [].slice.call(document.querySelectorAll('[data-copy]')).forEach(function(b){
+    b.addEventListener('click',function(ev){
+      ev.preventDefault();
+      var v=b.getAttribute('data-copy'), done=function(ok){
+        b.classList.toggle('ok', ok); b.classList.toggle('bad', !ok);
+        var was=b.getAttribute('aria-label');
+        b.setAttribute('aria-label', ok?'Address copied':'Selected - press Ctrl+C');
+        // If the clipboard is refused, select the address instead so the
+        // keyboard fallback is one keystroke rather than a manual drag.
+        if(!ok){
+          var a=b.parentNode.querySelector('a');
+          if(a && window.getSelection && document.createRange){
+            var r=document.createRange(); r.selectNodeContents(a);
+            var s=window.getSelection(); s.removeAllRanges(); s.addRange(r);
+          }
+        }
+        setTimeout(function(){ b.classList.remove('ok','bad');
+          b.setAttribute('aria-label', was); }, 1800);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(v).then(function(){done(true);},function(){done(false);});
+      } else {
+        // Older browsers, and any page not served over https.
+        var t=document.createElement('textarea');
+        t.value=v; t.setAttribute('readonly',''); t.style.position='fixed';
+        t.style.top='-1000px'; document.body.appendChild(t); t.select();
+        var ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
+        document.body.removeChild(t); done(ok);
+      }
+    });
+  });
+
+  // scroll-spy: mark the section currently in view
+  var links=[].slice.call(document.querySelectorAll('nav ul a'));
+  var secs=links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(!e.isIntersecting) return;
+        links.forEach(function(a,i){ a.setAttribute('aria-current', secs[i]===e.target ? 'true':'false'); });
+      }); }, {rootMargin:'-80px 0px -72% 0px'});
+    secs.forEach(function(s){ if(s) io.observe(s); });
+  }
+})();
+</script>
+</body>
+</html>
