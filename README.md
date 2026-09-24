@@ -16,3 +16,9 @@ a separate working repo and is rendered by `build/portfolio.py`; editing
 | `assets/` | rendered pages of the EESTEC recommendation letter |
 | `Uros_Savurdic_Resume.pdf` | the two-page CV the page links to |
 | `eestec-recommendation-letter.pdf` | the signed letter the page links to |
+
+> **Note:** repository links in `index.html` were updated after the GitHub
+> repositories were renamed. The same renames must be applied to
+> `content/master.json` in the working repo, or the next build will
+> reintroduce the old URLs. GitHub redirects the old names, so nothing
+> is broken in the meantime.
